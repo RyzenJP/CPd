@@ -280,6 +280,47 @@ function upsert_rlsddp_document(mysqli $conn, string $rlsddp_no, array $header, 
         }
         $stmt_item->bind_param("iissssddds", $doc_id, $id_int, $item_name, $description, $stock_no, $unit, $qty, $unit_value, $amount, $date_acquired);
         $stmt_item->execute();
+
+        if ($id_int !== null && $id_int > 0) {
+            $stmt_bal = $conn->prepare("SELECT balance_qty FROM items WHERE id = ?");
+            if ($stmt_bal) {
+                $stmt_bal->bind_param("i", $id_int);
+                $stmt_bal->execute();
+                $res_bal = $stmt_bal->get_result();
+                if ($res_bal && $row_bal = $res_bal->fetch_assoc()) {
+                    $current_balance = (float)$row_bal['balance_qty'];
+                    $new_balance = $current_balance - $qty;
+                    if ($new_balance < 0) {
+                        $new_balance = 0;
+                    }
+                    $stmt_upd = $conn->prepare("UPDATE items SET balance_qty = ? WHERE id = ?");
+                    if ($stmt_upd) {
+                        $stmt_upd->bind_param("di", $new_balance, $id_int);
+                        $stmt_upd->execute();
+                        $stmt_upd->close();
+                    }
+                    $stmt_tx = $conn->prepare("
+                        INSERT INTO inventory_transactions 
+                            (item_id, transaction_date, transaction_type, quantity, balance_after, remarks) 
+                        VALUES (?, NOW(), ?, ?, ?, ?)
+                    ");
+                    if ($stmt_tx) {
+                        $nature_list = $header['nature'] ?? [];
+                        $nature_str = !empty($nature_list) ? implode(', ', $nature_list) : 'RLSDDP';
+                        $remarks = 'RLSDDP No. ' . $rlsddp_no . ' (' . $nature_str . ')';
+                        $tx_type = 'Stock Out - Disposal - ' . (isset($nature_list[0]) ? $nature_list[0] : 'RLSDDP');
+                        
+                        $tx_type = substr($tx_type, 0, 50);
+                        $remarks = substr($remarks, 0, 255);
+                        
+                        $stmt_tx->bind_param("isdds", $id_int, $tx_type, $qty, $new_balance, $remarks);
+                        $stmt_tx->execute();
+                        $stmt_tx->close();
+                    }
+                }
+                $stmt_bal->close();
+            }
+        }
     }
 
     $stmt_item->close();
