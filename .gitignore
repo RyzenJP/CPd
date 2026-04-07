@@ -1,0 +1,31 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+php_errorlog
+error_log
+
+# Archives / backups
+*.zip
+*.bak
+*.tmp
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
+plugins/conn.local.php
+
+# User-uploaded files
+uploads/*
+!uploads/.gitkeep
+!uploads/profile_pics/
+uploads/profile_pics/*
+!uploads/profile_pics/.gitkeep
+
+# Test / scratch files
+__codex_write_test.txt

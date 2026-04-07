@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# If requested path is not an existing file or directory,
+# but a .php with that name exists, serve that .php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+)$ $1.php [L,QSA]
+
