@@ -893,7 +893,15 @@ if ($stmt_items) {
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle">
+                            <div class="d-flex justify-content-between align-items-end mb-2">
+                                <div class="small text-primary">
+                                    <i class="bi bi-info-circle me-1"></i> <strong>Tip:</strong> Check the box for the items that were lost or damaged, and specify the <strong>Quantity Lost</strong> (not the remaining balance).
+                                </div>
+                                <div>
+                                    <input type="text" id="lpItemSearch" class="form-control form-control-sm" placeholder="Search items on this page..." style="max-width: 250px;">
+                                </div>
+                            </div>
+                            <table class="table table-hover align-middle" id="lpItemsTable">
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 48px;" class="text-center">Pick</th>
@@ -904,7 +912,7 @@ if ($stmt_items) {
                                         <th class="text-center">Type</th>
                                         <th class="text-end">Unit Cost</th>
                                         <th class="text-end">Available</th>
-                                        <th class="text-end">Qty</th>
+                                        <th class="text-end" title="Enter the quantity that was lost/damaged">Qty Lost</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -922,7 +930,7 @@ if ($stmt_items) {
                                             <td class="text-end small"><?php echo number_format((float)$row['unit_value'], 2); ?></td>
                                             <td class="text-end fw-semibold"><?php echo number_format((int)($row['balance_qty'] ?? 0)); ?></td>
                                             <td class="text-end" style="max-width: 120px;">
-                                                <input type="number" class="form-control form-control-sm text-end" value="1" min="1" step="1" data-lp="qty" data-item-id="<?php echo $id; ?>">
+                                                <input type="number" class="form-control form-control-sm text-end" value="1" step="1" data-lp="qty" data-item-id="<?php echo $id; ?>">
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -1067,6 +1075,22 @@ if ($stmt_items) {
             });
         };
 
+        const searchInput = document.getElementById('lpItemSearch');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function () {
+                const filter = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#lpItemsTable tbody tr');
+                rows.forEach(function (row) {
+                    const text = row.textContent.toLowerCase();
+                    if (text.indexOf(filter) > -1) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+
         const setSelected = function (itemId, isSelected) {
             if (!state[itemId] || typeof state[itemId] !== 'object') {
                 state[itemId] = {};
@@ -1096,7 +1120,13 @@ if ($stmt_items) {
                 setSelected(itemId, el.checked);
             }
             if (kind === 'qty') {
-                setQty(itemId, el.value);
+                let val = parseFloat(el.value);
+                if (isNaN(val) || val < 1) {
+                    alert("Quantity lost must be at least 1.");
+                    el.value = 1;
+                    val = 1;
+                }
+                setQty(itemId, val);
             }
         });
 
